@@ -1,0 +1,526 @@
+openapi: '3.0.3'
+info:
+  title: URL Shortening RESTful API
+  version: '1.0'
+  description: API documentation for URL shortening service.
+  contact:
+    name: Azhar Bagaskara
+    email: azharbagaskara1@gmail.com
+    url: https://azbagas.com
+  license:
+    name: APACHE 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local URL
+paths:
+  /users:
+    post:
+      tags:
+        - users
+      summary: Register new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                passwordConfirmation:
+                  type: string
+      responses:
+        201:
+          description: Register success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: Register success
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: Validation error
+                errors:
+                  email: ['Email is required', 'Email is not valid']
+                  password: ['Password is required']
+        409:
+          description: Conflict with existing resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: Email already registered
+  /users/login:
+    post:
+      tags:
+        - users
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login success. The server will include the access token in the response body and the refresh token in a cookie.
+          headers:
+            Set-Cookie:
+              description: Set HTTP-only refresh token in a cookie for the `/users/refresh` path
+              schema:
+                type: string
+                example: refreshToken=string; Path=/users/refresh; Secure; HttpOnly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      accessToken:
+                        type: string
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: Validation error
+                errors:
+                  email: ['Email is required', 'Email is not valid']
+                  password: ['Password is required']
+        401:
+          description: Login failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: Email or password is incorrect
+  /users/current:
+    get:
+      tags:
+        - users
+      summary: Get current user
+      responses:
+        200:
+          description: Get current user success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /users/refresh:
+    post:
+      tags:
+        - users
+      summary: Get new access token
+      security: []
+      description:
+        Retrieves a new access token using the refresh token stored in an HTTP-only cookie.
+        The client must send a request with the refresh token in the cookie.
+      responses:
+        200:
+          description: Refresh token success. The server will include the new access token in the response body.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+        401:
+          description: Refresh token is invalid or expired. The user must login again.
+          headers:
+            Set-Cookie:
+              description: Clear the refresh token in the cookie
+              schema:
+                type: string
+                example: refreshToken=; Path=/users/refresh; Secure; HttpOnly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: Refresh token is invalid. Please login again.
+  /users/logout:
+    delete:
+      tags:
+        - users
+      summary: Logout user
+      responses:
+        204:
+          description: Logout success
+          headers:
+            Set-Cookie:
+              description: Clear the refresh token in the cookie
+              schema:
+                type: string
+                example: refreshToken=; Path=/users/refresh; Secure; HttpOnly
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /shorten:
+    post:
+      tags:
+        - shorten
+      summary: Shorten URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/CreateOrUpdateShortUrlRequest'
+            example:
+              url: https://www.azbagas.com/long/long/url
+      responses:
+        201:
+          description: Shorten URL success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Url'
+              example:
+                data:
+                  id: 1
+                  url: https://www.azbagas.com/long/long/url
+                  shortCode: abc123
+                  createdAt: '2021-08-01T00:00:00.000Z'
+                  updatedAt: '2021-08-01T00:00:00.000Z'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: Validation error
+                errors:
+                  url: ['URL is required', 'URL is not valid']
+    get:
+      tags:
+        - shorten
+      summary: Get all shortened URLs made by the current user
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Pagination
+          schema:
+            type: integer
+        - name: perPage
+          in: query
+          required: false
+          description: 'Set the total data shown per page (default: 5)'
+          schema:
+            $ref: '#/components/schemas/PerPageOptions'
+      responses:
+        200:
+          description: Get all shortened URLs success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Url'
+                  metadata:
+                    $ref: '#/components/schemas/Metadata'
+        400:
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              example:
+                message: Not listed perPage value. Please use 5, 10, or 25.
+  /shorten/{shortCode}:
+    get:
+      tags:
+        - shorten
+      summary: Get the original URL
+      parameters:
+        - name: shortCode
+          in: path
+          required: true
+          description: Short code of the URL
+          schema:
+            type: string
+      responses:
+        200:
+          description: Get original URL success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Url'
+              example:
+                data:
+                  id: 1
+                  url: https://www.azbagas.com/long/long/url
+                  shortCode: abc123
+                  createdAt: '2021-08-01T00:00:00.000Z'
+                  updatedAt: '2021-08-01T00:00:00.000Z'
+        404:
+          description: Short code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+    put:
+      tags:
+        - shorten
+      summary: Update the existing short URL
+      parameters:
+        - name: shortCode
+          in: path
+          required: true
+          description: Short code of the URL
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/CreateOrUpdateShortUrlRequest'
+            example:
+              url: https://www.azbagas.com/long/long/updated/url
+      responses:
+        200:
+          description: Update original URL success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Url'
+              example:
+                data:
+                  id: 1
+                  url: https://www.azbagas.com/long/long/updated/url
+                  shortCode: abc123
+                  createdAt: '2021-08-01T00:00:00.000Z'
+                  updatedAt: '2021-08-01T00:00:00.000Z'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: Validation error
+                errors:
+                  url: ['URL is required', 'URL is not valid']
+        404:
+          description: Short code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+    delete:
+      tags:
+        - shorten
+      summary: Delete the existing short URL
+      parameters:
+        - name: shortCode
+          in: path
+          required: true
+          description: Short code of the URL
+          schema:
+            type: string
+      responses:
+        204:
+          description: Delete original URL success
+        404:
+          description: Short code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /shorten/{shortCode}/stats:
+    get:
+      tags:
+        - shorten
+      summary: Get the statistics of the short URL
+      parameters:
+        - name: shortCode
+          in: path
+          required: true
+          description: Short code of the URL
+          schema:
+            type: string
+        - name: timeRange
+          in: query
+          required: true
+          description: Time range of the statistics (latest 7 days, 30 days, or 90 days)
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+      responses:
+        200:
+          description: Get URL statistics success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UrlStats'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                message: Validation error
+                errors:
+                  timeRange: ['Time range is required', 'Time range is not valid']
+        404:
+          description: Short code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      description: Enter the access token from login response here
+      type: http
+      scheme: bearer
+  schemas:
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        photo:
+          type: string
+    Url:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        shortCode:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateOrUpdateShortUrlRequest:
+      type: object
+      properties:
+        url:
+          type: string
+    UrlStats:
+      type: object
+      properties:
+        grandTotalAccessed:
+          type: integer
+        lastAccessedAt:
+          type: string
+          format: date-time
+        accessedDates:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              totalAccessed:
+                type: integer
+    Metadata:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        lastPage:
+          type: integer
+        perPage:
+          type: integer
+        total:
+          type: integer
+        from:
+          type: integer
+        to:
+          type: integer
+    PerPageOptions:
+      type: integer
+      enum:
+        - 5
+        - 10
+        - 25
