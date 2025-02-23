@@ -42,20 +42,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Message'
-              example:
-                message: Register success
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
         400:
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-              example:
-                message: Validation error
-                errors:
-                  email: ['Email is required', 'Email is not valid']
-                  password: ['Password is required']
         409:
           description: Conflict with existing resource
           content:
@@ -109,11 +105,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-              example:
-                message: Validation error
-                errors:
-                  email: ['Email is required', 'Email is not valid']
-                  password: ['Password is required']
         401:
           description: Login failed
           content:
@@ -133,7 +124,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
         401:
           description: Unauthorized
           content:
@@ -232,10 +226,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-              example:
-                message: Validation error
-                errors:
-                  url: ['URL is required', 'URL is not valid']
     get:
       tags:
         - shorten
@@ -272,9 +262,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Message'
-              example:
-                message: Not listed perPage value. Please use 5, 10, or 25.
+                $ref: '#/components/schemas/ValidationError'
   /shorten/{shortCode}:
     get:
       tags:
@@ -352,10 +340,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-              example:
-                message: Validation error
-                errors:
-                  url: ['URL is required', 'URL is not valid']
         404:
           description: Short code not found
           content:
@@ -417,10 +401,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-              example:
-                message: Validation error
-                errors:
-                  timeRange: ['Time range is required', 'Time range is not valid']
         404:
           description: Short code not found
           content:
@@ -443,11 +423,14 @@ components:
         message:
           type: string
         errors:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
     Message:
       type: object
       properties:

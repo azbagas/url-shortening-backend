@@ -8,6 +8,7 @@ import (
 
 	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/azbagas/url-shortening-backend/middleware"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
