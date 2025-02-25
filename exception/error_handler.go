@@ -39,6 +39,9 @@ func validationErrors(writer http.ResponseWriter, _ *http.Request, err interface
 		field := e.Field()
 		msg := helper.GetValidationErrorMessage(e)
 
+		// WARNING: It assume that all the json field name is camelCase
+		// Example:
+		// In struct: FirstName, JSON: firstName
 		field = strings.ToLower(field[:1]) + field[1:]
 
 		errorMessage := web.ValidationErrorFieldMessage{
