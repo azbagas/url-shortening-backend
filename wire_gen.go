@@ -9,7 +9,6 @@ package main
 import (
 	"github.com/azbagas/url-shortening-backend/app"
 	"github.com/azbagas/url-shortening-backend/controller"
-	"github.com/azbagas/url-shortening-backend/middleware"
 	"github.com/azbagas/url-shortening-backend/repository"
 	"github.com/azbagas/url-shortening-backend/service"
 	"github.com/google/wire"
@@ -23,18 +22,17 @@ import (
 // Injectors from injector.go:
 
 func InitializedServer() *http.Server {
-	viper := app.NewConfig()
 	userRepository := repository.NewUserRepository()
-	db := app.NewDB(viper)
+	refreshTokenRepository := repository.NewRefreshTokenRepository()
+	db := app.NewDB()
 	validate := app.NewValidator()
-	userService := service.NewUserService(userRepository, db, validate)
+	userService := service.NewUserService(userRepository, refreshTokenRepository, db, validate)
 	userController := controller.NewUserController(userService)
 	router := app.NewRouter(userController)
-	logMiddleware := middleware.NewLogMiddleware(router)
-	server := NewServer(viper, logMiddleware)
+	server := NewServer(router)
 	return server
 }
 
 // injector.go:
 
-var userSet = wire.NewSet(repository.NewUserRepository, service.NewUserService, controller.NewUserController)
+var userSet = wire.NewSet(repository.NewUserRepository, repository.NewRefreshTokenRepository, service.NewUserService, controller.NewUserController)

@@ -6,21 +6,25 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/azbagas/url-shortening-backend/config"
 	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/azbagas/url-shortening-backend/middleware"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
-func NewServer(config *viper.Viper, logMiddleware *middleware.LogMiddleware) *http.Server {
+func NewServer(router *httprouter.Router) *http.Server {
 	return &http.Server{
-		Addr:    fmt.Sprintf("localhost:%d", config.GetInt("APP_PORT")),
-		Handler: logMiddleware,
+		Addr:    fmt.Sprintf("localhost:%d", config.AppConfig.AppPort),
+		Handler: middleware.LogMiddleware(middleware.AuthMiddleware(router)),
 	}
 }
 
 func main() {
+	// Load config
+	config.LoadConfig()
+
 	// Set logger
 	file, err := os.OpenFile("log/application.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	helper.PanicIfError(err)

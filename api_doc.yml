@@ -83,10 +83,10 @@ paths:
           description: Login success. The server will include the access token in the response body and the refresh token in a cookie.
           headers:
             Set-Cookie:
-              description: Set HTTP-only refresh token in a cookie for the `/users/refresh` path
+              description: Set HTTP-only refresh token in a cookie for the `api/users/` path
               schema:
                 type: string
-                example: refreshToken=string; Path=/users/refresh; Secure; HttpOnly
+                example: refreshToken=string; Path=/api/users; Secure; HttpOnly
           content:
             application/json:
               schema:
@@ -163,7 +163,7 @@ paths:
               description: Clear the refresh token in the cookie
               schema:
                 type: string
-                example: refreshToken=; Path=/users/refresh; Secure; HttpOnly
+                example: refreshToken=; Path=/api/users; Secure; HttpOnly
           content:
             application/json:
               schema:
@@ -176,14 +176,27 @@ paths:
         - users
       summary: Logout user
       responses:
-        204:
-          description: Logout success
+        200:
+          description: Logout success. Client must clear the access token.
           headers:
             Set-Cookie:
               description: Clear the refresh token in the cookie
               schema:
                 type: string
-                example: refreshToken=; Path=/users/refresh; Secure; HttpOnly
+                example: refreshToken=; Path=/api/users; Secure; HttpOnly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+              example:
+                data:
+                  accessToken: ''
         401:
           description: Unauthorized
           content:

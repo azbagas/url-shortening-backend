@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/azbagas/url-shortening-backend/config"
 	"github.com/azbagas/url-shortening-backend/helper"
-	"github.com/spf13/viper"
 )
 
-func NewDB(config *viper.Viper) *sql.DB {
-	db, err := sql.Open("pgx", config.GetString("DATABASE_URL"))
+func NewDB() *sql.DB {
+	db, err := sql.Open("pgx", config.AppConfig.DatabaseUrl)
 	helper.PanicIfError(err)
 
 	db.SetMaxIdleConns(5)

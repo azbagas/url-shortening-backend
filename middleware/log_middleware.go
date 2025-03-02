@@ -8,30 +8,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type LogMiddleware struct {
-	Handler http.Handler
-}
+func LogMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		startTime := time.Now()
+		requestId := uuid.New().String()
 
-func NewLogMiddleware(handler http.Handler) *LogMiddleware {
-	return &LogMiddleware{Handler: handler}
-}
+		logrus.WithFields(logrus.Fields{
+			"requestId": requestId,
+			"method":    request.Method,
+			"url":       request.URL.Path,
+			"clientIP":  request.RemoteAddr,
+			"userAgent": request.UserAgent(),
+		}).Info("Incoming request")
 
-func (middleware *LogMiddleware) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	startTime := time.Now()
-	requestId := uuid.New().String()
+		next.ServeHTTP(writer, request)
 
-	logrus.WithFields(logrus.Fields{
-		"requestId": requestId,
-		"method":    request.Method,
-		"url":       request.URL.Path,
-		"clientIP":  request.RemoteAddr,
-		"userAgent": request.UserAgent(),
-	}).Info("Incoming request")
-
-	middleware.Handler.ServeHTTP(writer, request)
-
-	logrus.WithFields(logrus.Fields{
-		"requestId": requestId,
-		"latency":   time.Since(startTime).Milliseconds(),
-	}).Info("Response sent")
+		logrus.WithFields(logrus.Fields{
+			"requestId": requestId,
+			"latency":   time.Since(startTime).Milliseconds(),
+		}).Info("Response sent")
+	})
 }

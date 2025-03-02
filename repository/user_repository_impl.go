@@ -43,3 +43,22 @@ func (repository *UserRepositoryImpl) FindByEmail(ctx context.Context, tx *sql.T
 		return user, errors.New("User not found")
 	}
 }
+
+func (repository *UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, id int) (domain.User, error) {
+	SQL := "SELECT id, name, email, password, photo, created_at, updated_at FROM users WHERE id = $1"
+	
+	rows, err := tx.QueryContext(ctx, SQL, id)
+	helper.PanicIfError(err)
+	defer rows.Close()
+
+	user := domain.User{}
+
+	if rows.Next() {
+		err = rows.Scan(&user.Id, &user.Name, &user.Email, &user.Password, &user.Photo, &user.CreatedAt, &user.UpdatedAt)
+		helper.PanicIfError(err)
+
+		return user, nil
+	} else {
+		return user, errors.New("User not found")
+	}
+}

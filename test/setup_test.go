@@ -3,15 +3,19 @@ package test
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"testing"
 	"time"
 
 	"github.com/azbagas/url-shortening-backend/app"
+	"github.com/azbagas/url-shortening-backend/config"
 	"github.com/azbagas/url-shortening-backend/controller"
 	"github.com/azbagas/url-shortening-backend/helper"
+	"github.com/azbagas/url-shortening-backend/middleware"
 
-	// "github.com/azbagas/url-shortening-backend/middleware"
 	"github.com/azbagas/url-shortening-backend/repository"
 	"github.com/azbagas/url-shortening-backend/service"
 	"github.com/go-playground/validator/v10"
@@ -19,8 +23,18 @@ import (
 
 type ResponseBody map[string]interface{}
 
+func TestMain(m *testing.M) {
+	// Load config
+	os.Chdir("..")
+	config.LoadConfig()
+
+	code := m.Run()
+
+	os.Exit(code)
+}
+
 func SetupTestDB() *sql.DB {
-	db, err := sql.Open("pgx", "postgres://postgres:password@localhost:5432/url_shortening_backend?sslmode=disable")
+	db, err := sql.Open("pgx", "postgres://postgres:password@localhost:5432/url_shortening_backend")
 	helper.PanicIfError(err)
 
 	// Set connection pooling options
@@ -36,18 +50,37 @@ func SetupRouter(db *sql.DB) http.Handler {
 	validate := validator.New()
 
 	userRepository := repository.NewUserRepository()
-	userService := service.NewUserService(userRepository, db, validate)
+	refreshTokenRepository := repository.NewRefreshTokenRepository()
+	userService := service.NewUserService(userRepository, refreshTokenRepository, db, validate)
 	userController := controller.NewUserController(userService)
 
 	router := app.NewRouter(userController)
-	return router
-	// return middleware.NewLogMiddleware(router)
+	return middleware.AuthMiddleware(router)
 }
 
 func TruncateTable(db *sql.DB, table string) {
-	_, err := db.Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY")
+	_, err := db.Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE")
 	helper.PanicIfError(err)
 }
+
+func TruncateAllTables(db *sql.DB) {
+	_, err := db.Exec(`
+		DO $$ 
+		DECLARE r RECORD;
+		BEGIN
+			SET session_replication_role = 'replica';
+			FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') 
+			LOOP
+				EXECUTE 'TRUNCATE TABLE public.' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE;';
+			END LOOP;
+			SET session_replication_role = 'origin';
+		END $$;
+	`)
+	if err != nil {
+		fmt.Printf("Error truncating tables: %s", err.Error())
+	}
+}
+
 
 func ReadResponseBody(response *http.Response, responseBody *ResponseBody) {
 	body, _ := io.ReadAll(response.Body)

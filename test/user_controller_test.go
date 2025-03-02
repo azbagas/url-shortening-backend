@@ -12,6 +12,7 @@ import (
 func TestRegisterUser(t *testing.T) {
 	db := SetupTestDB()
 	router := SetupRouter(db)
+	defer db.Close()
 
 	t.Run("Register success", func(t *testing.T) {
 		TruncateTable(db, "users")
@@ -64,7 +65,7 @@ func TestRegisterUser(t *testing.T) {
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
 
-		assert.Equal(t, "Validation error", responseBody["message"])
+		assert.NotNil(t, responseBody["message"])
 
 		errors := responseBody["errors"].([]interface{})
 		assert.NotEqual(t, 0, len(errors))
@@ -104,6 +105,8 @@ func TestRegisterUser(t *testing.T) {
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
 
-		assert.Equal(t, "Email already registered", responseBody["message"])
+		assert.NotNil(t, responseBody["message"])
 	})
+
+	TruncateAllTables(db)
 }

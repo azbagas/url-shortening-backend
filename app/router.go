@@ -15,7 +15,12 @@ func NewRouter(userController controller.UserController) *httprouter.Router {
 	router.GET("/api/ping", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		fmt.Fprint(writer, "pong")
 	})
+
 	router.POST("/api/users", userController.Register)
+	router.POST("/api/users/login", userController.Login)
+	router.GET("/api/users/current", userController.GetCurrentUser)
+	router.POST("/api/users/refresh", userController.RefreshToken)
+	router.DELETE("/api/users/logout", userController.Logout)
 
 	router.PanicHandler = exception.ErrorHandler
 

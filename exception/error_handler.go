@@ -20,6 +20,10 @@ func ErrorHandler(writer http.ResponseWriter, request *http.Request, err interfa
 		return
 	}
 
+	if unauthorizedError(writer, request, err) {
+		return
+	}
+
 	if conflictError(writer, request, err) {
 		return
 	}
@@ -73,6 +77,21 @@ func notFoundError(writer http.ResponseWriter, _ *http.Request, err interface{})
 	}
 
 	helper.WriteToResponseBody(writer, http.StatusNotFound, messageResponse)
+	return true
+}
+
+func unauthorizedError(writer http.ResponseWriter, _ *http.Request, err interface{}) bool {
+	exception, ok := err.(UnauthorizedError)
+
+	if !ok {
+		return false
+	}
+
+	messageResponse := web.MessageResponse{
+		Message: exception.Error,
+	}
+
+	helper.WriteToResponseBody(writer, http.StatusUnauthorized, messageResponse)
 	return true
 }
 
