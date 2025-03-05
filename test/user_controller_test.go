@@ -25,9 +25,7 @@ func TestRegisterUser(t *testing.T) {
 		}`)
 		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
 		SetContentTypeJson(request)
-
 		recorder := httptest.NewRecorder()
-
 		router.ServeHTTP(recorder, request)
 
 		response := recorder.Result()
@@ -35,7 +33,6 @@ func TestRegisterUser(t *testing.T) {
 
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
-
 		data := responseBody["data"].(map[string]interface{})
 		assert.NotNil(t, data["id"])
 		assert.Equal(t, "Koseki Bijou", data["name"])
@@ -54,9 +51,7 @@ func TestRegisterUser(t *testing.T) {
 		}`)
 		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
 		SetContentTypeJson(request)
-
 		recorder := httptest.NewRecorder()
-
 		router.ServeHTTP(recorder, request)
 
 		response := recorder.Result()
@@ -64,9 +59,7 @@ func TestRegisterUser(t *testing.T) {
 
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
-
 		assert.NotNil(t, responseBody["message"])
-
 		errors := responseBody["errors"].([]interface{})
 		assert.NotEqual(t, 0, len(errors))
 	})
@@ -75,40 +68,37 @@ func TestRegisterUser(t *testing.T) {
 		TruncateTable(db, "users")
 
 		// First request
-		requestBody1 := strings.NewReader(`{
+		requestBody := strings.NewReader(`{
 			"name": "Koseki Bijou",
 			"email": "biboo@gmail.com",
 			"password": "password",
 			"passwordConfirmation": "password"
 		}`)
-		request1 := httptest.NewRequest(http.MethodPost, "/api/users", requestBody1)
-		SetContentTypeJson(request1)
-		recorder1 := httptest.NewRecorder()
-		router.ServeHTTP(recorder1, request1)
+		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
 
 		// Second request
-		requestBody2 := strings.NewReader(`{
+		requestBody = strings.NewReader(`{
 			"name": "Koseki Bijou",
 			"email": "biboo@gmail.com",
 			"password": "password",
 			"passwordConfirmation": "password"
 		}`)
-		request2 := httptest.NewRequest(http.MethodPost, "/api/users", requestBody2)
-		SetContentTypeJson(request2)
-		recorder2 := httptest.NewRecorder()
-		router.ServeHTTP(recorder2, request2)
+		request = httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
 
 		// Capture the second response
-		response := recorder2.Result()
+		response := recorder.Result()
 		assert.Equal(t, 409, response.StatusCode)
 
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
-
 		assert.NotNil(t, responseBody["message"])
 	})
-
-	TruncateAllTables(db)
 }
 
 func TestLoginUser(t *testing.T) {
