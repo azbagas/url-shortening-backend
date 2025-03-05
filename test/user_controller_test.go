@@ -110,3 +110,122 @@ func TestRegisterUser(t *testing.T) {
 
 	TruncateAllTables(db)
 }
+
+func TestLoginUser(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	t.Run("Login success", func(t *testing.T) {
+		TruncateTable(db, "users")
+
+		// First request: Register user
+		requestBody := strings.NewReader(`{
+			"name": "Koseki Bijou",
+			"email": "biboo@gmail.com",
+			"password": "password",
+			"passwordConfirmation": "password"
+		}`)
+		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		// Second request: Login user
+		requestBody = strings.NewReader(`{
+			"email": "biboo@gmail.com",
+			"password": "password"
+		}`)
+		request = httptest.NewRequest(http.MethodPost, "/api/users/login", requestBody)
+		SetContentTypeJson(request)
+		// Set user agent
+		request.Header.Set("User-Agent", "Mozilla/5.0")
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 200, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		data := responseBody["data"].(map[string]interface{})
+		assert.NotNil(t, data["accessToken"])
+		assert.NotNil(t, data["user"])
+		user := data["user"].(map[string]interface{})
+		assert.NotNil(t, user["id"])
+		assert.Equal(t, "Koseki Bijou", user["name"])
+		assert.Equal(t, "biboo@gmail.com", user["email"])
+		assert.NotNil(t, user["photo"])
+	})
+
+	t.Run("Login failed: Validation error", func(t *testing.T) {
+		TruncateTable(db, "users")
+
+		// First request: Register user
+		requestBody := strings.NewReader(`{
+			"name": "Koseki Bijou",
+			"email": "biboo@gmail.com",
+			"password": "password",
+			"passwordConfirmation": "password"
+		}`)
+		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		// Second request: Login user
+		requestBody = strings.NewReader(`{
+			"email": "invalidemail",
+			"password": "password"
+		}`)
+		request = httptest.NewRequest(http.MethodPost, "/api/users/login", requestBody)
+		SetContentTypeJson(request)
+		// Set user agent
+		request.Header.Set("User-Agent", "Mozilla/5.0")
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 400, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+		errors := responseBody["errors"].([]interface{})
+		assert.NotEqual(t, 0, len(errors))
+	})
+
+	t.Run("Login failed: email or password is incorrect", func(t *testing.T) {
+		TruncateTable(db, "users")
+
+		// First request: Register user
+		requestBody := strings.NewReader(`{
+			"name": "Koseki Bijou",
+			"email": "biboo@gmail.com",
+			"password": "password",
+			"passwordConfirmation": "password"
+		}`)
+		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		// Second request: Login user
+		requestBody = strings.NewReader(`{
+			"email": "wrongemail@gmail.com",
+			"password": "password"
+		}`)
+		request = httptest.NewRequest(http.MethodPost, "/api/users/login", requestBody)
+		SetContentTypeJson(request)
+		// Set user agent
+		request.Header.Set("User-Agent", "Mozilla/5.0")
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 401, response.StatusCode)
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+}
