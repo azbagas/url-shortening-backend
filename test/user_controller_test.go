@@ -136,6 +136,15 @@ func TestLoginUser(t *testing.T) {
 
 		response := recorder.Result()
 		assert.Equal(t, 200, response.StatusCode)
+		// Extract refresh token from cookies
+		refreshToken := ""
+		for _, cookie := range response.Cookies() {
+			if cookie.Name == "refreshToken" {
+				refreshToken = cookie.Value
+				break
+			}
+		}
+		assert.NotEmpty(t, refreshToken)
 
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
