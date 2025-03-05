@@ -1,20 +1,17 @@
 package test
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/azbagas/url-shortening-backend/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPingSuccess(t *testing.T) {
 	db := SetupTestDB()
 	router := SetupRouter(db)
-	fmt.Println(config.AppConfig.AppPort)
 
 	request := httptest.NewRequest(http.MethodGet, "/api/ping", nil)
 	request.Header.Add("Content-Type", "text/html")
