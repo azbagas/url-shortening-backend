@@ -386,3 +386,134 @@ func TestGetNewAccessToken(t *testing.T) {
 		assert.NotNil(t, responseBody["message"])
 	})
 }
+
+func TestLogoutUser(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	t.Run("Logout success", func(t *testing.T) {
+		TruncateTable(db, "users")
+
+		// First request: Register user
+		requestBody := strings.NewReader(`{
+			"name": "Koseki Bijou",
+			"email": "biboo@gmail.com",
+			"password": "password",
+			"passwordConfirmation": "password"
+		}`)
+		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		// Second request: Login user
+		requestBody = strings.NewReader(`{
+			"email": "biboo@gmail.com",
+			"password": "password"
+		}`)
+		request = httptest.NewRequest(http.MethodPost, "/api/users/login", requestBody)
+		SetContentTypeJson(request)
+		// Set user agent
+		request.Header.Set("User-Agent", "Mozilla/5.0")
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		// Get access token
+		var responseBody ResponseBody
+		ReadResponseBody(recorder.Result(), &responseBody)
+		accessToken := responseBody["data"].(map[string]interface{})["accessToken"].(string)
+
+		response := recorder.Result()
+		// Extract refresh token from cookies
+		refreshToken := ""
+		for _, cookie := range response.Cookies() {
+			if cookie.Name == "refreshToken" {
+				refreshToken = cookie.Value
+				break
+			}
+		}
+
+		// Third request: Logout user
+		request = httptest.NewRequest(http.MethodDelete, "/api/users/logout", nil)
+		SetContentTypeJson(request)
+		// Set access token
+		request.Header.Set("Authorization", "Bearer " + accessToken)
+		// Set refresh token
+		request.AddCookie(&http.Cookie{Name: "refreshToken", Value: refreshToken})
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response = recorder.Result()
+		assert.Equal(t, 200, response.StatusCode)
+
+		// See if refresh toke in cookies is empty
+		refreshToken = ""
+		for _, cookie := range response.Cookies() {
+			if cookie.Name == "refreshToken" {
+				refreshToken = cookie.Value
+				break
+			}
+		}
+		assert.Empty(t, refreshToken)
+	
+		ReadResponseBody(response, &responseBody)
+		data := responseBody["data"].(map[string]interface{})
+		assert.NotNil(t, data["accessToken"])
+		assert.Empty(t, data["accessToken"])
+	})
+
+	t.Run("Logout failed missing access token", func(t *testing.T) {
+		TruncateTable(db, "users")
+
+		// First request: Register user
+		requestBody := strings.NewReader(`{
+			"name": "Koseki Bijou",
+			"email": "biboo@gmail.com",
+			"password": "password",
+			"passwordConfirmation": "password"
+		}`)
+		request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
+		SetContentTypeJson(request)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		// Second request: Login user
+		requestBody = strings.NewReader(`{
+			"email": "biboo@gmail.com",
+			"password": "password"
+		}`)
+		request = httptest.NewRequest(http.MethodPost, "/api/users/login", requestBody)
+		SetContentTypeJson(request)
+		// Set user agent
+		request.Header.Set("User-Agent", "Mozilla/5.0")
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		// Extract refresh token from cookies
+		refreshToken := ""
+		for _, cookie := range response.Cookies() {
+			if cookie.Name == "refreshToken" {
+				refreshToken = cookie.Value
+				break
+			}
+		}
+
+		// Third request: Logout user
+		request = httptest.NewRequest(http.MethodDelete, "/api/users/logout", nil)
+		SetContentTypeJson(request)
+		// Set access token
+		// request.Header.Set("Authorization", "Bearer " + "empty")
+		// Set refresh token
+		request.AddCookie(&http.Cookie{Name: "refreshToken", Value: refreshToken})
+		recorder = httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response = recorder.Result()
+		assert.Equal(t, 401, response.StatusCode)
+	
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+}
