@@ -20,11 +20,18 @@ var userSet = wire.NewSet(
 	controller.NewUserController,
 )
 
+var urlSet = wire.NewSet(
+	repository.NewUrlRepository,
+	service.NewUrlService,
+	controller.NewUrlController,
+)
+
 func InitializedServer() *http.Server {
 	wire.Build(
 		app.NewDB,
 		app.NewValidator,
 		userSet,
+		urlSet,
 		app.NewRouter,
 		NewServer,
 	)

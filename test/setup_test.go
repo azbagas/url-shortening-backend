@@ -53,7 +53,11 @@ func SetupRouter(db *sql.DB) http.Handler {
 	userService := service.NewUserService(userRepository, refreshTokenRepository, db, validate)
 	userController := controller.NewUserController(userService)
 
-	router := app.NewRouter(userController)
+	urlRepository := repository.NewUrlRepository()
+	urlService := service.NewUrlService(urlRepository, db, validate)
+	urlController := controller.NewUrlController(urlService)
+
+	router := app.NewRouter(userController, urlController)
 	return middleware.AuthMiddleware(router)
 }
 

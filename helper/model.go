@@ -23,3 +23,13 @@ func ToUserResponse(user domain.User) web.UserResponse {
 		Photo: photoURL,
 	}
 }
+
+func ToUrlResponse(url domain.Url) web.UrlResponse {
+	return web.UrlResponse{
+		Id:        url.Id,
+		Url:       url.Url,
+		ShortCode: url.ShortCode,
+		CreatedAt: FormatToUTCString(url.CreatedAt),
+		UpdatedAt: FormatToUTCString(url.UpdatedAt),
+	}
+}

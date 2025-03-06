@@ -1,0 +1,12 @@
+CREATE TABLE urls (
+  id SERIAL NOT NULL,
+  user_id INT NOT NULL,
+  url VARCHAR NOT NULL,
+  short_code VARCHAR NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  
+  PRIMARY KEY (id),
+  CONSTRAINT unique_short_code UNIQUE (short_code),
+  CONSTRAINT fk_urls_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);

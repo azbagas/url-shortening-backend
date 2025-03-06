@@ -9,7 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func NewRouter(userController controller.UserController) *httprouter.Router {
+func NewRouter(userController controller.UserController, urlController controller.UrlController) *httprouter.Router {
 	router := httprouter.New()
 
 	router.GET("/api/ping", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
@@ -21,6 +21,8 @@ func NewRouter(userController controller.UserController) *httprouter.Router {
 	router.GET("/api/users/current", userController.GetCurrentUser)
 	router.POST("/api/users/refresh", userController.RefreshToken)
 	router.DELETE("/api/users/logout", userController.Logout)
+
+	router.POST("/api/shorten", urlController.Shorten)
 
 	router.PanicHandler = exception.ErrorHandler
 

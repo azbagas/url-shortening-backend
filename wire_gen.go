@@ -28,7 +28,10 @@ func InitializedServer() *http.Server {
 	validate := app.NewValidator()
 	userService := service.NewUserService(userRepository, refreshTokenRepository, db, validate)
 	userController := controller.NewUserController(userService)
-	router := app.NewRouter(userController)
+	urlRepository := repository.NewUrlRepository()
+	urlService := service.NewUrlService(urlRepository, db, validate)
+	urlController := controller.NewUrlController(urlService)
+	router := app.NewRouter(userController, urlController)
 	server := NewServer(router)
 	return server
 }
@@ -36,3 +39,5 @@ func InitializedServer() *http.Server {
 // injector.go:
 
 var userSet = wire.NewSet(repository.NewUserRepository, repository.NewRefreshTokenRepository, service.NewUserService, controller.NewUserController)
+
+var urlSet = wire.NewSet(repository.NewUrlRepository, service.NewUrlService, controller.NewUrlController)
