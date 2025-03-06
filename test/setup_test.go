@@ -3,7 +3,6 @@ package test
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -62,25 +61,6 @@ func TruncateTable(db *sql.DB, table string) {
 	_, err := db.Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE")
 	helper.PanicIfError(err)
 }
-
-func TruncateAllTables(db *sql.DB) {
-	_, err := db.Exec(`
-		DO $$ 
-		DECLARE r RECORD;
-		BEGIN
-			SET session_replication_role = 'replica';
-			FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') 
-			LOOP
-				EXECUTE 'TRUNCATE TABLE public.' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE;';
-			END LOOP;
-			SET session_replication_role = 'origin';
-		END $$;
-	`)
-	if err != nil {
-		fmt.Printf("Error truncating tables: %s", err.Error())
-	}
-}
-
 
 func ReadResponseBody(response *http.Response, responseBody *ResponseBody) {
 	body, _ := io.ReadAll(response.Body)
