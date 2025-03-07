@@ -21,7 +21,7 @@ func NewUrlController(urlService service.UrlService) UrlController {
 
 func (controller *UrlControllerImpl) Shorten(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	authUserId := request.Context().Value("authUserId").(int)
-	
+
 	urlShortenRequest := web.UrlShortenRequest{}
 	helper.ReadFromRequestBody(request, &urlShortenRequest)
 
@@ -36,9 +36,34 @@ func (controller *UrlControllerImpl) Shorten(writer http.ResponseWriter, request
 func (controller *UrlControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	authUserId := request.Context().Value("authUserId").(int)
 
-	urlResponses := controller.UrlService.FindAll(request.Context(), authUserId)
-	dataResponse := web.DataResponse{
+	// Get query params
+	var errors []web.ValidationErrorFieldMessage
+
+	page, errResponse := helper.ConvertQueryParamToInt("page", request.URL.Query().Get("page"), "1")
+	if errResponse != nil {
+		errors = append(errors, *errResponse)
+	}
+
+	perPage, errResponse := helper.ConvertQueryParamToInt("perPage", request.URL.Query().Get("perPage"), "5")
+	if errResponse != nil {
+		errors = append(errors, *errResponse)
+	}
+
+	if len(errors) > 0 {
+		helper.WriteToResponseBody(writer, http.StatusBadRequest, web.ValidationErrorResponse{Message: "Validation error", Errors: errors})
+		return
+	}
+	// End of get query params
+
+	urlFindAllRequest := web.UrlFindAllRequest{
+		Page:    page,
+		PerPage: perPage,
+	}
+
+	urlResponses, paginationResponse := controller.UrlService.FindAll(request.Context(), urlFindAllRequest, authUserId)
+	dataResponse := web.DataWithPaginationResponse{
 		Data: urlResponses,
+		Metadata: paginationResponse,
 	}
 
 	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)

@@ -51,12 +51,16 @@ func (service *UrlServiceImpl) Shorten(ctx context.Context, request web.UrlShort
 	return helper.ToUrlResponse(url)
 }
 
-func (service *UrlServiceImpl) FindAll(ctx context.Context, authUserId int) []web.UrlResponse {
+func (service *UrlServiceImpl) FindAll(ctx context.Context, request web.UrlFindAllRequest, authUserId int) ([]web.UrlResponse, web.PaginationResponse) {
+	err := service.Validate.Struct(request)
+	helper.PanicIfError(err)
+	
 	tx, err := service.DB.Begin()
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
-	urls := service.UrlRepository.FindAll(ctx, tx)
+	countUrls := service.UrlRepository.CountAll(ctx, tx, authUserId)
+	urls := service.UrlRepository.FindAll(ctx, tx, authUserId, request.Page, request.PerPage)
 
-	return helper.ToUrlResponses(urls)
+	return helper.ToUrlResponses(urls), helper.ToPaginationResponse(request.Page, request.PerPage, countUrls)
 }

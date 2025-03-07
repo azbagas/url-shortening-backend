@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/azbagas/url-shortening-backend/model/domain"
@@ -46,4 +47,29 @@ func ToUrlResponses(urls []domain.Url) []web.UrlResponse {
 	}
 
 	return urlResponses
+}
+
+func ToPaginationResponse(page int, perPage int, totalData int) web.PaginationResponse {
+	lastPage := math.Ceil(float64(totalData) / float64(perPage))
+
+	from := (page-1)*perPage + 1
+
+	to := page * perPage
+	if page == int(lastPage) {
+		to = totalData
+	}
+
+	if page > int(lastPage) {
+		from = 0
+		to = 0
+	}
+
+	return web.PaginationResponse{
+		CurrentPage: page,
+		LastPage:    int(lastPage),
+		PerPage:     perPage,
+		Total:       totalData,
+		From:        from,
+		To:          to,
+	}
 }

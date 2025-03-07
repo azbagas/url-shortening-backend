@@ -24,10 +24,24 @@ func (repository *UrlRepositoryImpl) Save(ctx context.Context, tx *sql.Tx, url d
 	return url
 }
 
-func (repository *UrlRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) []domain.Url {
-	SQL := `SELECT id, user_id, url, short_code, created_at, updated_at FROM urls`
+func (repository *UrlRepositoryImpl) CountAll(ctx context.Context, tx *sql.Tx, userId int) int {
+	SQL := `SELECT COUNT(id) FROM urls WHERE user_id = $1`
 	
-	rows, err := tx.QueryContext(ctx, SQL)
+	var count int
+	err := tx.QueryRowContext(ctx, SQL, userId).Scan(&count)
+	helper.PanicIfError(err)
+	
+	return count
+}
+
+func (repository *UrlRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, userId int, page int, perPage int) []domain.Url {
+	SQL := `SELECT id, user_id, url, short_code, created_at, updated_at 
+					FROM urls
+					WHERE user_id = $1
+					ORDER BY created_at DESC
+					LIMIT $2 OFFSET $3`
+	
+	rows, err := tx.QueryContext(ctx, SQL, userId, perPage, (page-1)*perPage)
 	helper.PanicIfError(err)
 	
 	defer rows.Close()
