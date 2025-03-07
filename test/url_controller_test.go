@@ -9,13 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShortenUrl(t *testing.T) {
-	db := SetupTestDB()
-	router := SetupRouter(db)
-	defer db.Close()
-
-	TruncateTable(db, "users")
-
+func RegisterAndLoginUser(router http.Handler) string {
 	// 1) Register user
 	requestBody := strings.NewReader(`{
 		"name": "Koseki Bijou",
@@ -44,22 +38,35 @@ func TestShortenUrl(t *testing.T) {
 	ReadResponseBody(recorder.Result(), &responseBody)
 	accessToken := responseBody["data"].(map[string]interface{})["accessToken"].(string)
 
+	return accessToken
+}
+
+func TestShortenUrl(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	TruncateTable(db, "users")
+
+	accessToken := RegisterAndLoginUser(router)
+
 	t.Run("Shortening success", func(t *testing.T) {
 		TruncateTable(db, "urls")
 
 		// Shorten URL
-		requestBody = strings.NewReader(`{
+		requestBody := strings.NewReader(`{
 			"url": "https://azbagas.com"
 		}`)
-		request = httptest.NewRequest(http.MethodPost, "/api/shorten", requestBody)
+		request := httptest.NewRequest(http.MethodPost, "/api/shorten", requestBody)
 		SetContentTypeJson(request)
 		request.Header.Set("Authorization", "Bearer "+accessToken)
-		recorder = httptest.NewRecorder()
+		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
 		response := recorder.Result()
 		assert.Equal(t, 201, response.StatusCode)
 
+		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
 		data := responseBody["data"].(map[string]interface{})
 		assert.NotNil(t, data["id"])
@@ -73,18 +80,19 @@ func TestShortenUrl(t *testing.T) {
 		TruncateTable(db, "urls")
 
 		// Shorten URL
-		requestBody = strings.NewReader(`{
+		requestBody := strings.NewReader(`{
 			"url": "invalid url"
 		}`)
-		request = httptest.NewRequest(http.MethodPost, "/api/shorten", requestBody)
+		request := httptest.NewRequest(http.MethodPost, "/api/shorten", requestBody)
 		SetContentTypeJson(request)
 		request.Header.Set("Authorization", "Bearer "+accessToken)
-		recorder = httptest.NewRecorder()
+		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
 		response := recorder.Result()
 		assert.Equal(t, 400, response.StatusCode)
 
+		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)
 		assert.NotNil(t, responseBody["message"])
 	})
