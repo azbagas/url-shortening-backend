@@ -50,3 +50,13 @@ func (service *UrlServiceImpl) Shorten(ctx context.Context, request web.UrlShort
 
 	return helper.ToUrlResponse(url)
 }
+
+func (service *UrlServiceImpl) FindAll(ctx context.Context, authUserId int) []web.UrlResponse {
+	tx, err := service.DB.Begin()
+	helper.PanicIfError(err)
+	defer helper.CommitOrRollback(tx)
+
+	urls := service.UrlRepository.FindAll(ctx, tx)
+
+	return helper.ToUrlResponses(urls)
+}

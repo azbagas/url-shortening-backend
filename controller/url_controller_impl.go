@@ -32,3 +32,14 @@ func (controller *UrlControllerImpl) Shorten(writer http.ResponseWriter, request
 
 	helper.WriteToResponseBody(writer, http.StatusCreated, dataResponse)
 }
+
+func (controller *UrlControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	authUserId := request.Context().Value("authUserId").(int)
+
+	urlResponses := controller.UrlService.FindAll(request.Context(), authUserId)
+	dataResponse := web.DataResponse{
+		Data: urlResponses,
+	}
+
+	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
+}

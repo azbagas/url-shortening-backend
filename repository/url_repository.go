@@ -9,4 +9,5 @@ import (
 
 type UrlRepository interface {
 	Save(ctx context.Context, tx *sql.Tx, url domain.Url) domain.Url
+	FindAll(ctx context.Context, tx *sql.Tx) []domain.Url
 }

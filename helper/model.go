@@ -33,3 +33,17 @@ func ToUrlResponse(url domain.Url) web.UrlResponse {
 		UpdatedAt: FormatToUTCString(url.UpdatedAt),
 	}
 }
+
+func ToUrlResponses(urls []domain.Url) []web.UrlResponse {
+	// If there is no data, return empty array
+	if len(urls) == 0 {
+		return []web.UrlResponse{}
+	}
+
+	var urlResponses []web.UrlResponse
+	for _, url := range urls {
+		urlResponses = append(urlResponses, ToUrlResponse(url))
+	}
+
+	return urlResponses
+}

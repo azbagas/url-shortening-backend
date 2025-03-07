@@ -23,6 +23,7 @@ func NewRouter(userController controller.UserController, urlController controlle
 	router.DELETE("/api/users/logout", userController.Logout)
 
 	router.POST("/api/shorten", urlController.Shorten)
+	router.GET("/api/shorten", urlController.FindAll)
 
 	router.PanicHandler = exception.ErrorHandler
 
