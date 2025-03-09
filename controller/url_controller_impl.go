@@ -68,3 +68,14 @@ func (controller *UrlControllerImpl) FindAll(writer http.ResponseWriter, request
 
 	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
 }
+
+func (controller *UrlControllerImpl) FindByShortCode(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	shortCode := params.ByName("shortCode")
+
+	urlResponse := controller.UrlService.FindByShortCode(request.Context(), shortCode)
+	dataResponse := web.DataResponse{
+		Data: urlResponse,
+	}
+
+	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
+}

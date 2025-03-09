@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/azbagas/url-shortening-backend/exception"
 	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/azbagas/url-shortening-backend/model/domain"
 	"github.com/azbagas/url-shortening-backend/model/web"
@@ -63,4 +64,20 @@ func (service *UrlServiceImpl) FindAll(ctx context.Context, request web.UrlFindA
 	urls := service.UrlRepository.FindAll(ctx, tx, authUserId, request.Page, request.PerPage)
 
 	return helper.ToUrlResponses(urls), helper.ToPaginationResponse(request.Page, request.PerPage, countUrls)
+}
+
+func (service *UrlServiceImpl) FindByShortCode(ctx context.Context, shortCode string) web.UrlResponse {
+	tx, err := service.DB.Begin()
+	helper.PanicIfError(err)
+	defer helper.CommitOrRollback(tx)
+
+	url, err := service.UrlRepository.FindByShortCode(ctx, tx, shortCode)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
+
+	// Increment access count
+	service.UrlRepository.IncrementAccessCount(ctx, tx, url.Id)
+
+	return helper.ToUrlResponse(url)
 }
