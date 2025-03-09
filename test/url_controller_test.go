@@ -42,8 +42,8 @@ func RegisterAndLoginUser(router http.Handler) string {
 	return accessToken
 }
 
-func createShortenedUrl(router http.Handler, accessToken string, url string) {
-	// Shorten URL
+func createShortenedUrl(router http.Handler, accessToken string, url string) string {
+	// Shorten URL and get the short code
 	requestBody := strings.NewReader(fmt.Sprintf(`{
 		"url": "%s"
 	}`, url))
@@ -52,6 +52,12 @@ func createShortenedUrl(router http.Handler, accessToken string, url string) {
 	request.Header.Set("Authorization", "Bearer "+accessToken)
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, request)
+
+	response := recorder.Result()
+	var responseBody ResponseBody
+	ReadResponseBody(response, &responseBody)
+	data := responseBody["data"].(map[string]interface{})
+	return data["shortCode"].(string)
 }
 
 func TestShortenUrl(t *testing.T) {
@@ -232,5 +238,53 @@ func TestFindAll(t *testing.T) {
 		assert.NotNil(t, responseBody["message"])
 		errors := responseBody["errors"].([]interface{})
 		assert.NotEqual(t, 0, len(errors))
+	})
+}
+
+func TestFindByShortCode(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	TruncateTable(db, "users")
+	TruncateTable(db, "urls")
+
+	accessToken := RegisterAndLoginUser(router)
+
+	shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+
+	t.Run("Find by short code success", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + shortCode, nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 200, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		data := responseBody["data"].(map[string]interface{})
+		assert.NotNil(t, data["id"])
+		assert.Equal(t, "https://azbagas.com", data["url"])
+		assert.Equal(t, shortCode, data["shortCode"])
+		assert.NotNil(t, data["createdAt"])
+		assert.NotNil(t, data["updatedAt"])
+	})
+
+	t.Run("Find by short code not found", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + "unkownShortCode", nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 404, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
 	})
 }
