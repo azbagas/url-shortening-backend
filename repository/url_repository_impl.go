@@ -86,3 +86,12 @@ func (repository *UrlRepositoryImpl) IncrementAccessCount(ctx context.Context, t
 	_, err := tx.ExecContext(ctx, SQL, urlId)
 	helper.PanicIfError(err)
 }
+
+func (repository *UrlRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, url domain.Url) domain.Url {
+	SQL := `UPDATE urls SET url = $1, updated_at = $2 WHERE short_code = $3`
+
+	_, err := tx.ExecContext(ctx, SQL, url.Url, url.UpdatedAt, url.ShortCode)
+	helper.PanicIfError(err)
+
+	return url
+}

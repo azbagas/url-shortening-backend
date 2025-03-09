@@ -10,4 +10,5 @@ type UrlService interface {
 	Shorten(ctx context.Context, request web.UrlShortenRequest, authUserId int) web.UrlResponse
 	FindAll(ctx context.Context, request web.UrlFindAllRequest, authUserId int) ([]web.UrlResponse, web.PaginationResponse)
 	FindByShortCode(ctx context.Context, shortCode string) web.UrlResponse
+	Update(ctx context.Context, request web.UrlUpdateRequest, authUserId int) web.UrlResponse
 }

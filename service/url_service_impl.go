@@ -81,3 +81,28 @@ func (service *UrlServiceImpl) FindByShortCode(ctx context.Context, shortCode st
 
 	return helper.ToUrlResponse(url)
 }
+
+func (service *UrlServiceImpl) Update(ctx context.Context, request web.UrlUpdateRequest, authUserId int) web.UrlResponse {
+	err := service.Validate.Struct(request)
+	helper.PanicIfError(err)
+
+	tx, err := service.DB.Begin()
+	helper.PanicIfError(err)
+	defer helper.CommitOrRollback(tx)
+
+	url, err := service.UrlRepository.FindByShortCode(ctx, tx, request.ShortCode)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
+
+	if url.UserId != authUserId {
+		panic(exception.NewForbiddenError("You don't have permission to update this url"))
+	}
+
+	url.Url = request.Url
+	url.UpdatedAt = time.Now().UTC()
+
+	url = service.UrlRepository.Update(ctx, tx, url)
+
+	return helper.ToUrlResponse(url)
+}

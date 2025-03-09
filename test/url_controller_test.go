@@ -10,24 +10,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func RegisterAndLoginUser(router http.Handler) string {
+func RegisterAndLoginUser(router http.Handler, email string) string {
 	// 1) Register user
-	requestBody := strings.NewReader(`{
+	requestBody := strings.NewReader(fmt.Sprintf(`{
 		"name": "Koseki Bijou",
-		"email": "biboo@gmail.com",
+		"email": "%s",
 		"password": "password",
 		"passwordConfirmation": "password"
-	}`)
+	}`, email))
 	request := httptest.NewRequest(http.MethodPost, "/api/users", requestBody)
 	SetContentTypeJson(request)
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, request)
 
 	// 2) Login user
-	requestBody = strings.NewReader(`{
-		"email": "biboo@gmail.com",
+	requestBody = strings.NewReader(fmt.Sprintf(`{
+		"email": "%s",
 		"password": "password"
-	}`)
+	}`, email))
 	request = httptest.NewRequest(http.MethodPost, "/api/users/login", requestBody)
 	SetContentTypeJson(request)
 	// Set user agent
@@ -67,7 +67,7 @@ func TestShortenUrl(t *testing.T) {
 
 	TruncateTable(db, "users")
 
-	accessToken := RegisterAndLoginUser(router)
+	accessToken := RegisterAndLoginUser(router, "biboo@gmail.com")
 
 	t.Run("Shortening success", func(t *testing.T) {
 		TruncateTable(db, "urls")
@@ -125,7 +125,7 @@ func TestFindAll(t *testing.T) {
 	TruncateTable(db, "users")
 	TruncateTable(db, "urls")
 
-	accessToken := RegisterAndLoginUser(router)
+	accessToken := RegisterAndLoginUser(router, "biboo@gmail.com")
 
 	longUrls := []string{
 		"https://azbagas.com",
@@ -249,7 +249,7 @@ func TestFindByShortCode(t *testing.T) {
 	TruncateTable(db, "users")
 	TruncateTable(db, "urls")
 
-	accessToken := RegisterAndLoginUser(router)
+	accessToken := RegisterAndLoginUser(router, "biboo@gmail.com")
 
 	shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
 
@@ -282,6 +282,100 @@ func TestFindByShortCode(t *testing.T) {
 
 		response := recorder.Result()
 		assert.Equal(t, 404, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+}
+
+func TestUpdateUrl(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	TruncateTable(db, "users")
+	TruncateTable(db, "urls")
+
+	accessToken := RegisterAndLoginUser(router, "biboo@gmail.com")
+
+	shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+
+	t.Run("Update url success", func(t *testing.T) {
+		requestBody := strings.NewReader(`{
+			"url": "https://www.google.com"
+		}`)
+		request := httptest.NewRequest(http.MethodPut, "/api/shorten/" + shortCode, requestBody)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 200, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		data := responseBody["data"].(map[string]interface{})
+		assert.NotNil(t, data["id"])
+		assert.Equal(t, "https://www.google.com", data["url"])
+		assert.Equal(t, shortCode, data["shortCode"])
+		assert.NotNil(t, data["createdAt"])
+		assert.NotNil(t, data["updatedAt"])
+	})
+
+	t.Run("Update url validation failed", func(t *testing.T) {
+		requestBody := strings.NewReader(`{
+			"url": "invalidurl"
+		}`)
+		request := httptest.NewRequest(http.MethodPut, "/api/shorten/" + shortCode, requestBody)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 400, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+		errors := responseBody["errors"].([]interface{})
+		assert.NotEqual(t, 0, len(errors))
+	})
+
+	t.Run("Update url short code not found", func(t *testing.T) {
+		requestBody := strings.NewReader(`{
+			"url": "https://www.google.com"
+		}`)
+		request := httptest.NewRequest(http.MethodPut, "/api/shorten/" + "unknownshortcode", requestBody)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 404, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+
+	t.Run("Update url forbidden", func(t *testing.T) {
+		accessToken2 := RegisterAndLoginUser(router, "kaela@gmail.com")
+		
+		requestBody := strings.NewReader(`{
+			"url": "https://www.google.com"
+		}`)
+		request := httptest.NewRequest(http.MethodPut, "/api/shorten/" + shortCode, requestBody)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken2)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 403, response.StatusCode)
 
 		var responseBody ResponseBody
 		ReadResponseBody(response, &responseBody)

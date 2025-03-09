@@ -24,6 +24,10 @@ func ErrorHandler(writer http.ResponseWriter, request *http.Request, err interfa
 		return
 	}
 
+	if forbiddenError(writer, request, err) {
+		return
+	}
+
 	if conflictError(writer, request, err) {
 		return
 	}
@@ -92,6 +96,21 @@ func unauthorizedError(writer http.ResponseWriter, _ *http.Request, err interfac
 	}
 
 	helper.WriteToResponseBody(writer, http.StatusUnauthorized, messageResponse)
+	return true
+}
+
+func forbiddenError(writer http.ResponseWriter, _ *http.Request, err interface{}) bool {
+	exception, ok := err.(ForbiddenError)
+
+	if !ok {
+		return false
+	}
+
+	messageResponse := web.MessageResponse{
+		Message: exception.Error,
+	}
+
+	helper.WriteToResponseBody(writer, http.StatusForbidden, messageResponse)
 	return true
 }
 

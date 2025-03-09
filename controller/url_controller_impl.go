@@ -79,3 +79,21 @@ func (controller *UrlControllerImpl) FindByShortCode(writer http.ResponseWriter,
 
 	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
 }
+
+func (controller *UrlControllerImpl) Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	authUserId := request.Context().Value("authUserId").(int)
+	
+	urlUpdateRequest := web.UrlUpdateRequest{}
+	helper.ReadFromRequestBody(request, &urlUpdateRequest)
+
+	urlShortCode := params.ByName("shortCode")
+
+	urlUpdateRequest.ShortCode = urlShortCode
+
+	urlResponse := controller.UrlService.Update(request.Context(), urlUpdateRequest, authUserId)
+	dataResponse := web.DataResponse{
+		Data: urlResponse,
+	}
+
+	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
+}
