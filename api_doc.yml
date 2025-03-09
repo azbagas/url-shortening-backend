@@ -359,6 +359,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        403:
+          description: Forbidden because the short URL is not owned by the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
     delete:
       tags:
         - shorten
@@ -375,6 +381,12 @@ paths:
           description: Delete original URL success
         404:
           description: Short code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        403:
+          description: Forbidden because the short URL is not owned by the current user
           content:
             application/json:
               schema:
@@ -416,6 +428,12 @@ paths:
                 $ref: '#/components/schemas/ValidationError'
         404:
           description: Short code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        403:
+          description: Forbidden because the short URL is not owned by the current user
           content:
             application/json:
               schema:
