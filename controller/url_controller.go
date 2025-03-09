@@ -11,4 +11,5 @@ type UrlController interface {
 	FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindByShortCode(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }

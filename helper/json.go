@@ -15,6 +15,10 @@ func WriteToResponseBody(writer http.ResponseWriter, httpCode int, response inte
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(httpCode)
 
+	if response == nil {
+		return
+	}
+
 	encoder := json.NewEncoder(writer)
 	err := encoder.Encode(response)
 	PanicIfError(err)

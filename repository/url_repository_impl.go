@@ -95,3 +95,10 @@ func (repository *UrlRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, url
 
 	return url
 }
+
+func (repository *UrlRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, url domain.Url) {
+	SQL := `DELETE FROM urls WHERE short_code = $1`
+
+	_, err := tx.ExecContext(ctx, SQL, url.ShortCode)
+	helper.PanicIfError(err)
+}

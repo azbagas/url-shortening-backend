@@ -14,4 +14,5 @@ type UrlRepository interface {
 	FindByShortCode(ctx context.Context, tx *sql.Tx, shortCode string) (domain.Url, error)
 	IncrementAccessCount(ctx context.Context, tx *sql.Tx, urlId int)
 	Update(ctx context.Context, tx *sql.Tx, url domain.Url) domain.Url
+	Delete(ctx context.Context, tx *sql.Tx, url domain.Url)
 }

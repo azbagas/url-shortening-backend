@@ -382,3 +382,60 @@ func TestUpdateUrl(t *testing.T) {
 		assert.NotNil(t, responseBody["message"])
 	})
 }
+
+func TestDeleteUrl(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	TruncateTable(db, "users")
+	TruncateTable(db, "urls")
+
+	accessToken := RegisterAndLoginUser(router, "biboo@gmail.com")
+
+	t.Run("Delete url success", func(t *testing.T) {
+		shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+		
+		request := httptest.NewRequest(http.MethodDelete, "/api/shorten/" + shortCode, nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 204, response.StatusCode)
+	})
+
+	t.Run("Delete url forbidden", func(t *testing.T) {
+		shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+		accessToken2 := RegisterAndLoginUser(router, "kaela@gmail.com")
+
+		request := httptest.NewRequest(http.MethodDelete, "/api/shorten/" + shortCode, nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken2)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 403, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+
+	t.Run("Delete failed: short code not found", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodDelete, "/api/shorten/" + "notfoundshortcode", nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 404, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+}

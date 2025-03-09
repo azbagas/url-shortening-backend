@@ -26,6 +26,7 @@ func NewRouter(userController controller.UserController, urlController controlle
 	router.GET("/api/shorten", urlController.FindAll)
 	router.GET("/api/shorten/:shortCode", urlController.FindByShortCode)
 	router.PUT("/api/shorten/:shortCode", urlController.Update)
+	router.DELETE("/api/shorten/:shortCode", urlController.Delete)
 
 	router.PanicHandler = exception.ErrorHandler
 

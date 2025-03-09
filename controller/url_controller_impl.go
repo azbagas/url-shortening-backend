@@ -97,3 +97,13 @@ func (controller *UrlControllerImpl) Update(writer http.ResponseWriter, request 
 
 	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
 }
+
+func (controller *UrlControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	authUserId := request.Context().Value("authUserId").(int)
+	
+	shortCode := params.ByName("shortCode")
+
+	controller.UrlService.Delete(request.Context(), shortCode, authUserId)
+
+	helper.WriteToResponseBody(writer, http.StatusNoContent, nil)
+}

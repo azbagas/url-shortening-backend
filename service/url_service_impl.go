@@ -106,3 +106,20 @@ func (service *UrlServiceImpl) Update(ctx context.Context, request web.UrlUpdate
 
 	return helper.ToUrlResponse(url)
 }
+
+func (service *UrlServiceImpl) Delete(ctx context.Context, shortCode string, authUserId int) {
+	tx, err := service.DB.Begin()
+	helper.PanicIfError(err)
+	defer helper.CommitOrRollback(tx)
+
+	url, err := service.UrlRepository.FindByShortCode(ctx, tx, shortCode)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
+
+	if url.UserId != authUserId {
+		panic(exception.NewForbiddenError("You don't have permission to delete this url"))
+	}
+
+	service.UrlRepository.Delete(ctx, tx, url)
+}
