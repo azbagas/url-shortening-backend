@@ -397,6 +397,13 @@ paths:
         - shorten
       summary: Get the statistics of the short URL
       parameters:
+        - name: X-Timezone
+          in: header
+          required: true
+          description: Time zone of the user. Use the IANA time zone format. Will use UTC if not provided.
+          schema:
+            type: string
+            example: Asia/Jakarta
         - name: shortCode
           in: path
           required: true
@@ -419,7 +426,12 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/UrlStats'
+                    type: object
+                    properties:
+                      shortUrl:
+                        $ref: '#/components/schemas/Url'
+                      stats:
+                        $ref: '#/components/schemas/UrlStats'
         400:
           description: Validation error
           content:
