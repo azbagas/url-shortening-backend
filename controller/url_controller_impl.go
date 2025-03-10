@@ -107,3 +107,32 @@ func (controller *UrlControllerImpl) Delete(writer http.ResponseWriter, request 
 
 	helper.WriteToResponseBody(writer, http.StatusNoContent, nil)
 }
+
+func (controller *UrlControllerImpl) GetStats(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	authUserId := request.Context().Value("authUserId").(int)
+
+	// Get url short code
+	urlShortCode := params.ByName("shortCode")
+
+	// Get timezone from header
+	timezone := request.Header.Get("X-Timezone")
+	if timezone == "" {
+		timezone = "UTC"
+	}
+
+	// Get query params
+	timeRange := request.URL.Query().Get("timeRange")
+
+	urlStatsRequest := web.UrlStatsRequest{
+		ShortCode: urlShortCode,
+		Timezone:  timezone,
+		TimeRange: timeRange,
+	}
+
+	urlStatsResponse := controller.UrlService.GetStats(request.Context(), urlStatsRequest, authUserId)
+	dataResponse := web.DataResponse{
+		Data: urlStatsResponse,
+	}
+
+	helper.WriteToResponseBody(writer, http.StatusOK, dataResponse)
+}

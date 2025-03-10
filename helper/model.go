@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/azbagas/url-shortening-backend/model/domain"
 	"github.com/azbagas/url-shortening-backend/model/web"
@@ -72,4 +73,40 @@ func ToPaginationResponse(page int, perPage int, totalData int) web.PaginationRe
 		From:        from,
 		To:          to,
 	}
+}
+
+func ToUrlStatsResponse(url domain.Url, grandTotalAccessed int, lastAccessedAt time.Time, accessedDates []domain.UrlAccessTotalPerDate) web.UrlStatsResponse {
+	return web.UrlStatsResponse{
+		ShortUrl: ToUrlResponse(url),
+		Stats:    ToUrlStatsDetailResponse(grandTotalAccessed, lastAccessedAt, accessedDates),
+	}
+}
+
+func ToUrlStatsDetailResponse(grandTotalAccessed int, lastAccessedAt time.Time, urlStats []domain.UrlAccessTotalPerDate) web.UrlStatsDetailResponse {
+	var lastAccessedAtResp string
+	
+	lastAccessedAtResp = FormatToUTCString(lastAccessedAt)
+
+	return web.UrlStatsDetailResponse{
+		GrandTotalAccessed: grandTotalAccessed,
+		LastAccessedAt:     lastAccessedAtResp,
+		AccessedDates:      ToUrlAccessTotalPerDateResponses(urlStats),
+	}
+}
+
+func ToUrlAccessTotalPerDateResponses(urlStats []domain.UrlAccessTotalPerDate) []web.UrlAccessTotalPerDateResponse {
+	// If there is no data, return empty array
+	if len(urlStats) == 0 {
+		return []web.UrlAccessTotalPerDateResponse{}
+	}
+
+	var urlAccessTotalPerDateResponses []web.UrlAccessTotalPerDateResponse
+	for _, urlStat := range urlStats {
+		urlAccessTotalPerDateResponses = append(urlAccessTotalPerDateResponses, web.UrlAccessTotalPerDateResponse{
+			Date:          urlStat.Date,
+			TotalAccessed: urlStat.TotalAccessed,
+		})
+	}
+
+	return urlAccessTotalPerDateResponses
 }

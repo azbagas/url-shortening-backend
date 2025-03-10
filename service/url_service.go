@@ -12,4 +12,5 @@ type UrlService interface {
 	FindByShortCode(ctx context.Context, shortCode string) web.UrlResponse
 	Update(ctx context.Context, request web.UrlUpdateRequest, authUserId int) web.UrlResponse
 	Delete(ctx context.Context, shortCode string, authUserId int)
+	GetStats(ctx context.Context, request web.UrlStatsRequest, authUserId int) web.UrlStatsResponse
 }

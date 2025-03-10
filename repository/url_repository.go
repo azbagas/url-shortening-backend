@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/azbagas/url-shortening-backend/model/domain"
 )
@@ -15,4 +16,7 @@ type UrlRepository interface {
 	IncrementAccessCount(ctx context.Context, tx *sql.Tx, urlId int)
 	Update(ctx context.Context, tx *sql.Tx, url domain.Url) domain.Url
 	Delete(ctx context.Context, tx *sql.Tx, url domain.Url)
+	TotalAccessedPerDate(ctx context.Context, tx *sql.Tx, urlId int, timezone string, startDate string, endDate string) []domain.UrlAccessTotalPerDate
+	GrandTotalAccessed(ctx context.Context, tx *sql.Tx, urlId int) int
+	LastAccessed(ctx context.Context, tx *sql.Tx, urlId int) (time.Time, error)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/azbagas/url-shortening-backend/model/domain"
@@ -101,4 +102,59 @@ func (repository *UrlRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, url
 
 	_, err := tx.ExecContext(ctx, SQL, url.ShortCode)
 	helper.PanicIfError(err)
+}
+
+func (repository *UrlRepositoryImpl) TotalAccessedPerDate(ctx context.Context, tx *sql.Tx, urlId int, timezone string, startDate string, endDate string) []domain.UrlAccessTotalPerDate {
+	SQL := `SELECT (accessed_at AT TIME ZONE $1)::DATE AS date, COUNT(id) AS total_accessed
+					FROM url_access_stats
+					WHERE url_id = $2
+					AND (accessed_at AT TIME ZONE $1)::DATE BETWEEN $3 AND $4
+					GROUP BY date
+					ORDER BY date`
+
+	rows, err := tx.QueryContext(ctx, SQL, timezone, urlId, startDate, endDate)
+	helper.PanicIfError(err)
+	defer rows.Close()
+
+	var urlAccessStats []domain.UrlAccessTotalPerDate
+	for rows.Next() {
+		stats := domain.UrlAccessTotalPerDate{}
+		var date time.Time
+		err := rows.Scan(&date, &stats.TotalAccessed)
+		helper.PanicIfError(err)
+
+		stats.Date = date.Format("2006-01-02")
+		urlAccessStats = append(urlAccessStats, stats)
+	}
+
+	return urlAccessStats
+}
+
+func (repository *UrlRepositoryImpl) GrandTotalAccessed(ctx context.Context, tx *sql.Tx, urlId int) int {
+	SQL := `SELECT COUNT(id) FROM url_access_stats WHERE url_id = $1`
+
+	var count int
+	err := tx.QueryRowContext(ctx, SQL, urlId).Scan(&count)
+	helper.PanicIfError(err)
+
+	return count
+}
+
+func (repository *UrlRepositoryImpl) LastAccessed(ctx context.Context, tx *sql.Tx, urlId int) (time.Time, error) {
+	SQL := `SELECT accessed_at FROM url_access_stats WHERE url_id = $1 ORDER BY accessed_at DESC LIMIT 1`
+
+	rows, err := tx.QueryContext(ctx, SQL, urlId)
+	helper.PanicIfError(err)
+	defer rows.Close()
+
+	var accessedAt time.Time
+
+	if rows.Next() {
+		err = rows.Scan(&accessedAt)
+		helper.PanicIfError(err)
+
+		return accessedAt, nil
+	} else {
+		return accessedAt, errors.New("No access found")
+	}
 }
