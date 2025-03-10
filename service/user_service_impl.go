@@ -11,7 +11,6 @@ import (
 	"github.com/azbagas/url-shortening-backend/model/domain"
 	"github.com/azbagas/url-shortening-backend/model/web"
 	"github.com/azbagas/url-shortening-backend/repository"
-	"github.com/azbagas/url-shortening-backend/token"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -79,10 +78,10 @@ func (service *UserServiceImpl) Login(ctx context.Context, request web.UserLogin
 	}
 
 	// Create access token
-	accessToken := token.CreateAccessToken(user.Id)
+	accessToken := helper.CreateAccessToken(user.Id)
 
 	// Create refresh token
-	refreshToken := token.CreateRefreshToken(user.Id)
+	refreshToken := helper.CreateRefreshToken(user.Id)
 
 	// Save refresh token to database
 	refreshTokenDomain := domain.RefreshToken{
@@ -123,14 +122,14 @@ func (service *UserServiceImpl) RefreshToken(ctx context.Context, refreshTokenRe
 	}
 
 	// Verify refresh token
-	_, err = token.VerifyRefreshToken(refreshTokenRequest)
+	_, err = helper.VerifyRefreshToken(refreshTokenRequest)
 	if err != nil {
 		service.RefreshTokenRepository.Delete(ctx, tx, refreshTokenDomain)
 		return web.NewAccessTokenResponse{}, errors.New(err.Error())
 	}
 
 	// Create new access token
-	accessToken := token.CreateAccessToken(refreshTokenDomain.UserId)
+	accessToken := helper.CreateAccessToken(refreshTokenDomain.UserId)
 
 	return web.NewAccessTokenResponse{
 		AccessToken: accessToken,

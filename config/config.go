@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/spf13/viper"
 )
 
@@ -21,7 +20,9 @@ func LoadConfig() {
 	config.AutomaticEnv()
 
 	err := config.ReadInConfig()
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	AppConfig = Config{
 		AppName:            config.GetString("APP_NAME"),

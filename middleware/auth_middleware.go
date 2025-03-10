@@ -8,7 +8,6 @@ import (
 
 	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/azbagas/url-shortening-backend/model/web"
-	"github.com/azbagas/url-shortening-backend/token"
 )
 
 var publicRoutes = map[string]map[string]bool{
@@ -49,7 +48,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		accessToken := strings.Replace(authorizationHeader, "Bearer ", "", -1)
 
-		claims, err := token.VerifyAccessToken(accessToken)
+		claims, err := helper.VerifyAccessToken(accessToken)
 		if err != nil {
 			messageResponse := web.MessageResponse{
 				Message: "Invalid token",

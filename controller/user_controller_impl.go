@@ -7,7 +7,6 @@ import (
 	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/azbagas/url-shortening-backend/model/web"
 	"github.com/azbagas/url-shortening-backend/service"
-	"github.com/azbagas/url-shortening-backend/token"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -41,7 +40,7 @@ func (controller *UserControllerImpl) Login(writer http.ResponseWriter, request 
 	serviceLoginResponse := controller.UserService.Login(request.Context(), UserLoginRequest)
 
 	// Set refresh token to cookie
-	cookie := token.CreateRefreshTokenCookie(serviceLoginResponse.RefreshToken)
+	cookie := helper.CreateRefreshTokenCookie(serviceLoginResponse.RefreshToken)
 	http.SetCookie(writer, &cookie)
 
 	loginResponse := web.UserLoginResponse{
@@ -84,7 +83,7 @@ func (controller *UserControllerImpl) RefreshToken(writer http.ResponseWriter, r
 		}
 
 		// Delete refresh token cookie
-		cookie := token.DeleteRefreshTokenCookie()
+		cookie := helper.DeleteRefreshTokenCookie()
 		http.SetCookie(writer, &cookie)
 
 		helper.WriteToResponseBody(writer, http.StatusUnauthorized, message)
@@ -114,7 +113,7 @@ func (controller *UserControllerImpl) Logout(writer http.ResponseWriter, request
 		}
 
 		// Delete refresh token cookie
-		cookieData := token.DeleteRefreshTokenCookie()
+		cookieData := helper.DeleteRefreshTokenCookie()
 		http.SetCookie(writer, &cookieData)
 
 		helper.WriteToResponseBody(writer, http.StatusUnauthorized, message)
@@ -122,7 +121,7 @@ func (controller *UserControllerImpl) Logout(writer http.ResponseWriter, request
 	}
 
 	// Delete refresh token cookie
-	cookieData := token.DeleteRefreshTokenCookie()
+	cookieData := helper.DeleteRefreshTokenCookie()
 	http.SetCookie(writer, &cookieData)
 
 	// Send empty access token

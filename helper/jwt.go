@@ -1,4 +1,4 @@
-package token
+package helper
 
 import (
 	"net/http"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/azbagas/url-shortening-backend/config"
-	"github.com/azbagas/url-shortening-backend/helper"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -17,7 +16,9 @@ func CreateAccessToken(userId int) string {
 		"exp": time.Now().Add(time.Minute * 15).Unix(), // 15 minutes
 	})
 	accessToken, err := accessTokenClaims.SignedString([]byte(config.AppConfig.AccessTokenSecret))
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	return accessToken
 }
@@ -29,7 +30,9 @@ func CreateRefreshToken(userId int) string {
 		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(), // 30 days
 	})
 	refreshToken, err := refreshTokenClaims.SignedString([]byte(config.AppConfig.RefreshTokenSecret))
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	return refreshToken
 }
