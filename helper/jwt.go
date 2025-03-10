@@ -16,9 +16,7 @@ func CreateAccessToken(userId int) string {
 		"exp": time.Now().Add(time.Minute * 15).Unix(), // 15 minutes
 	})
 	accessToken, err := accessTokenClaims.SignedString([]byte(config.AppConfig.AccessTokenSecret))
-	if err != nil {
-		panic(err)
-	}
+	PanicIfError(err)
 
 	return accessToken
 }
@@ -30,9 +28,7 @@ func CreateRefreshToken(userId int) string {
 		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(), // 30 days
 	})
 	refreshToken, err := refreshTokenClaims.SignedString([]byte(config.AppConfig.RefreshTokenSecret))
-	if err != nil {
-		panic(err)
-	}
+	PanicIfError(err)
 
 	return refreshToken
 }
