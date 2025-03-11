@@ -60,6 +60,14 @@ func createShortenedUrl(router http.Handler, accessToken string, url string) str
 	return data["shortCode"].(string)
 }
 
+func findByShortCode(router http.Handler, accessToken string, shortCode string) {
+	request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + shortCode, nil)
+	SetContentTypeJson(request)
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+}
+
 func TestShortenUrl(t *testing.T) {
 	db := SetupTestDB()
 	router := SetupRouter(db)
@@ -428,6 +436,161 @@ func TestDeleteUrl(t *testing.T) {
 		request := httptest.NewRequest(http.MethodDelete, "/api/shorten/" + "notfoundshortcode", nil)
 		SetContentTypeJson(request)
 		request.Header.Set("Authorization", "Bearer "+accessToken)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 404, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+}
+
+func TestGetUrlStats(t *testing.T) {
+	db := SetupTestDB()
+	router := SetupRouter(db)
+	defer db.Close()
+
+	TruncateTable(db, "users")
+	TruncateTable(db, "urls")
+
+	accessToken := RegisterAndLoginUser(router, "biboo@gmail.com")
+
+	t.Run("Get url stats success", func(t *testing.T) {
+		shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+
+		// Find by short code 3 times to increase the visit count
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		
+		// Get stats
+		request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + shortCode + "/stats", nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		request.Header.Set("X-Timezone", "Asia/Jakarta")
+		// set query params
+		q := request.URL.Query()
+		q.Add("timeRange", "7d")
+		request.URL.RawQuery = q.Encode()
+
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 200, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		data := responseBody["data"].(map[string]interface{})
+
+		url := data["shortUrl"].(map[string]interface{})
+		assert.NotNil(t, url["id"])
+		assert.Equal(t, "https://azbagas.com", url["url"])
+		assert.Equal(t, shortCode, url["shortCode"])
+		assert.NotNil(t, url["createdAt"])
+		assert.NotNil(t, url["updatedAt"])
+
+		stats := data["stats"].(map[string]interface{})
+		assert.Equal(t, 3, int(stats["grandTotalAccessed"].(float64)))
+		assert.NotNil(t, stats["lastAccessedAt"])
+		accessedDates := stats["accessedDates"].([]interface{})
+		assert.Equal(t, 7, len(accessedDates)) // Equal 7 because the time range is 7d
+
+		for _, accessedDate := range accessedDates {
+			date := accessedDate.(map[string]interface{})
+			assert.NotNil(t, date["date"])
+			assert.NotNil(t, date["totalAccessed"])
+		}
+	})
+
+	t.Run("Get url stats failed validation error", func(t *testing.T) {
+		shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+
+		// Find by short code 3 times to increase the visit count
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		
+		// Get stats
+		request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + shortCode + "/stats", nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		request.Header.Set("X-Timezone", "wrongtimezone")
+		// set query params
+		q := request.URL.Query()
+		q.Add("timeRange", "wrongtimerange")
+		request.URL.RawQuery = q.Encode()
+
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 400, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+		errors := responseBody["errors"].([]interface{})
+		assert.NotEqual(t, 0, len(errors))
+
+		for _, err := range errors {
+			errorData := err.(map[string]interface{})
+			assert.NotNil(t, errorData["field"])
+			assert.NotNil(t, errorData["message"])
+		}
+	})
+
+	t.Run("Get url stats forbidden", func(t *testing.T) {
+		shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+
+		// Find by short code 3 times to increase the visit count
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		
+		// Get stats
+		accessToken2 := RegisterAndLoginUser(router, "kaela@gmail.com")
+
+		request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + shortCode + "/stats", nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken2)
+		request.Header.Set("X-Timezone", "Asia/Jakarta")
+		// set query params
+		q := request.URL.Query()
+		q.Add("timeRange", "7d")
+		request.URL.RawQuery = q.Encode()
+
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := recorder.Result()
+		assert.Equal(t, 403, response.StatusCode)
+
+		var responseBody ResponseBody
+		ReadResponseBody(response, &responseBody)
+		assert.NotNil(t, responseBody["message"])
+	})
+
+	t.Run("Short code not found", func(t *testing.T) {
+		shortCode := createShortenedUrl(router, accessToken, "https://azbagas.com")
+
+		// Find by short code 3 times to increase the visit count
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		findByShortCode(router, accessToken, shortCode)
+		
+		request := httptest.NewRequest(http.MethodGet, "/api/shorten/" + "wrongshortcode" + "/stats", nil)
+		SetContentTypeJson(request)
+		request.Header.Set("Authorization", "Bearer "+accessToken)
+		request.Header.Set("X-Timezone", "Asia/Jakarta")
+		// set query params
+		q := request.URL.Query()
+		q.Add("timeRange", "7d")
+		request.URL.RawQuery = q.Encode()
+
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 
