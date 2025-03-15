@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 }
 
 func SetupTestDB() *sql.DB {
-	db, err := sql.Open("pgx", "postgres://postgres:password@localhost:5432/url_shortening_backend")
+	db, err := sql.Open("pgx", config.AppConfig.DatabaseUrl)
 	helper.PanicIfError(err)
 
 	// Set connection pooling options
